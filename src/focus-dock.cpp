@@ -168,10 +168,12 @@ FocusDock::FocusDock(QWidget *parent) : QWidget(parent)
 
 	table_ = new QTableWidget(this);
 	table_->setColumnCount(6);
-	table_->setHorizontalHeaderLabels(
-		{QString::fromUtf8(obs_module_text("Column.Enroll")), QString::fromUtf8(obs_module_text("Column.Immediate")),
-		 QString::fromUtf8(obs_module_text("Column.Name")), QString::fromUtf8(obs_module_text("Column.Kind")),
-		 QString::fromUtf8(obs_module_text("Column.Target")), QString::fromUtf8(obs_module_text("Column.Status"))});
+	table_->setHorizontalHeaderLabels({QString::fromUtf8(obs_module_text("Column.Enroll")),
+					   QString::fromUtf8(obs_module_text("Column.Immediate")),
+					   QString::fromUtf8(obs_module_text("Column.Name")),
+					   QString::fromUtf8(obs_module_text("Column.Kind")),
+					   QString::fromUtf8(obs_module_text("Column.Target")),
+					   QString::fromUtf8(obs_module_text("Column.Status"))});
 	table_->verticalHeader()->setVisible(false);
 	table_->setSelectionMode(QAbstractItemView::NoSelection);
 	table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
