@@ -200,12 +200,50 @@ void FocusMonitor::set_enrolled(const std::string &uuid, bool enrolled)
 		return;
 	restore(uuid);
 	enrolled_.erase(it);
+	lost_since_.erase(uuid);
 }
 
 void FocusMonitor::replace_enrolled(const std::vector<std::string> &uuids)
 {
 	enrolled_ = uuids;
 	snapshots_.clear();
+	lost_since_.clear();
+}
+
+void FocusMonitor::set_hide_delay_ms(int ms)
+{
+	hide_delay_ms_ = ms < 0 ? 0 : ms;
+}
+
+int FocusMonitor::hide_delay_ms() const
+{
+	return hide_delay_ms_;
+}
+
+void FocusMonitor::set_immediate(const std::string &uuid, bool immediate)
+{
+	if (immediate)
+		immediate_.insert(uuid);
+	else
+		immediate_.erase(uuid);
+	if (is_enrolled(uuid))
+		apply(uuid);
+}
+
+void FocusMonitor::replace_immediate(const std::vector<std::string> &uuids)
+{
+	immediate_.clear();
+	immediate_.insert(uuids.begin(), uuids.end());
+}
+
+bool FocusMonitor::is_immediate(const std::string &uuid) const
+{
+	return immediate_.find(uuid) != immediate_.end();
+}
+
+std::vector<std::string> FocusMonitor::immediate_uuids() const
+{
+	return {immediate_.begin(), immediate_.end()};
 }
 
 bool FocusMonitor::is_enrolled(const std::string &uuid) const
@@ -285,7 +323,21 @@ void FocusMonitor::apply(const std::string &uuid)
 	const FocusView view = inspect(source);
 	obs_source_release(source);
 
-	const bool show = view.state == FocusState::Showing;
+	const bool focused = view.state == FocusState::Showing;
+	const int delay_ms = immediate_.find(uuid) != immediate_.end() ? 0 : hide_delay_ms_;
+	bool show = focused;
+	if (focused) {
+		lost_since_.erase(uuid);
+	} else {
+		const auto now = std::chrono::steady_clock::now();
+		const auto [it, inserted] = lost_since_.emplace(uuid, now);
+		if (inserted && delay_ms == 0)
+			show = false;
+		else {
+			const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - it->second);
+			show = elapsed.count() < delay_ms;
+		}
+	}
 	for_each_item(uuid, [show](obs_sceneitem_t *item, const std::string &) {
 		if (obs_sceneitem_visible(item) != show)
 			obs_sceneitem_set_visible(item, show);
